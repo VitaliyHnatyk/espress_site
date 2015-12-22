@@ -1,0 +1,24 @@
+{
+  "name": "vh-site",
+  "version": "0.0.1",
+  "authors": [
+    "Vitaliy Hnatyk <vitaliy.hnatyk@gmail.com>"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests",
+    "public/bower_components"
+  ],
+  "dependencies": {
+    "jquery": "~2.1.4"
+  },
+  "description": "",
+  "main": "",
+  "moduleType": [],
+  "homepage": "",
+  "private": true
+}
