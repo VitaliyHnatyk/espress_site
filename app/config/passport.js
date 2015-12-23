@@ -17,7 +17,6 @@ module.exports = function(passport,User) {
         });
     });
 
-    // REGISTRAZIONE CON E-MAIL
     passport.use(
 
         'local-signup', 
@@ -62,7 +61,7 @@ module.exports = function(passport,User) {
         )
     );
 
-    // LOGIN CON E-MAIL
+
     passport.use(
 
         'local-login',
@@ -94,7 +93,7 @@ module.exports = function(passport,User) {
         )
     );
 
-    // FACEBOOK
+
     passport.use(
 
         new FacebookStrategy({
