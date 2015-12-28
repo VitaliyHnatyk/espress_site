@@ -26,6 +26,10 @@ var User            = require('./app/models/user-mongo');
 // uncomment next line if you want in-memory users storage
 // var User = require('./app/models/user-test');
 
+var config = require('./config.json');
+console.log(config.username+' '+ config.password);
+
+
 passportConfig(passport,User);
 
 app.set('views', __dirname + '/app/views/');
@@ -33,7 +37,7 @@ app.set('view engine', 'ejs');
 app.use(morgan('dev')); 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname, 'www')));
 app.use(cookieParser()); 
 app.use(session({ secret: 'caffenoamazon', resave:true, saveUninitialized:true })); 
 app.use(passport.initialize());

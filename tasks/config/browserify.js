@@ -14,10 +14,10 @@ module.exports = function(grunt) {
       ]
 
     },
-    client: {
-      src: ['./private/js/index.js'],
-      dest: 'assets/js/bundle.js'
+    files: {
+        'assets/js/bundle.js':['./private/js/index.js']
     }
+   
   });
 
   console.log("browserify");
