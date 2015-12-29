@@ -1,204 +1,200 @@
-var LocalStrategy       = require('passport-local').Strategy;
-var FacebookStrategy    = require('passport-facebook').Strategy;
-var TwitterStrategy     = require('passport-twitter').Strategy;
-var GoogleStrategy      = require('passport-google-oauth').OAuth2Strategy;
+var LocalStrategy = require('passport-local').Strategy;
+var FacebookStrategy = require('passport-facebook').Strategy;
+var TwitterStrategy = require('passport-twitter').Strategy;
+var GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
-var authConfig          = require('./auth');
+var authConfig = require('./auth');
 
-module.exports = function(passport,User) {
+module.exports = function (passport, User) {
 
-    passport.serializeUser(function(user, done) {
-        done(null, user._id);
-    });
+	passport.serializeUser(function (user, done) {
+		done(null, user._id);
+	});
 
-    passport.deserializeUser(function(id, done) {
-        User.findById(id, function(err, user) {
-            done(err, user);
-        });
-    });
+	passport.deserializeUser(function (id, done) {
+		User.findById(id, function (err, user) {
+			done(err, user);
+		});
+	});
 
-    passport.use(
+	passport.use(
+		'local-signup',
 
-        'local-signup', 
-        
-        new LocalStrategy(
-            
-            {
-                usernameField : 'email',
-                passwordField : 'password',
-                passReqToCallback : true 
-            },
+		new LocalStrategy(
+			{
+				usernameField: 'email',
+				passwordField: 'password',
+				passReqToCallback: true
+			},
 
-            function(req, email, password, done) {
+			function (req, email, password, done) {
 
-                process.nextTick(function() {
+				process.nextTick(function () {
 
-                    User.findOne({ 'email' :  email }, function(err, user) {
-                        
-                        if (err) return done(err);
+					User.findOne({'email': email}, function (err, user) {
 
-                        if (user) {
+						if (err) return done(err);
 
-                            return done(null, false, req.flash('signinMessage', 'Utente già esistente.'));
+						if (user) {
 
-                        } else {
+							return done(null, false, req.flash('signinMessage', 'Utente già esistente.'));
 
-                            var newUser             = new User();
-                            newUser.fullName        = req.body.name || '';
-                            newUser.email           = email;
-                            newUser.local.password  = newUser.generateHash(password);
-                            
-                            newUser.save(function(err) {
-                                if (err) throw err;
-                                return done(null, newUser);
-                            });
-                        }
+						} else {
 
-                    });    
+							var newUser = new User();
+							newUser.fullName = req.body.name || '';
+							newUser.email = email;
+							newUser.local.password = newUser.generateHash(password);
 
-                });
-            }
-        )
-    );
+							newUser.save(function (err) {
+								if (err) throw err;
+								return done(null, newUser);
+							});
+						}
+
+					});
+
+				});
+			}
+		)
+	);
 
 
-    passport.use(
+	passport.use(
+		'local-login',
 
-        'local-login',
+		new LocalStrategy(
+			{
+				usernameField: 'email',
+				passwordField: 'password',
+				passReqToCallback: true
+			},
+			function (req, email, password, done) {
 
-        new LocalStrategy(
-            {
-                usernameField : 'email',
-                passwordField : 'password',
-                passReqToCallback : true 
-            },
-            function(req, email, password, done) { 
+				User.findOne({'email': email}, function (err, user) {
 
-                User.findOne({ 'email' :  email }, function(err, user) {
+					if (err) return done(err);
 
-                    if (err) return done(err);
+					if (!user) {
+						return done(null, false, req.flash('signinMessage', 'Questo utente non esiste.'));
+					}
 
-                    if (!user) {
-                        return done(null, false, req.flash('signinMessage', 'Questo utente non esiste.')); 
-                    }
+					if (!user.validPassword(password)) {
+						return done(null, false, req.flash('signinMessage', 'Oops! La password non è corretta.'));
+					}
 
-                    if (!user.validPassword(password)) {
-                        return done(null, false, req.flash('signinMessage', 'Oops! La password non è corretta.')); 
-                    }
+					return done(null, user);
+				});
 
-                    return done(null, user);
-                });
-
-            }
-        )
-    );
+			}
+		)
+	);
 
 
-    passport.use(
+	passport.use(
+		new FacebookStrategy({
+				clientID: authConfig.facebookAuth.clientID,
+				clientSecret: authConfig.facebookAuth.clientSecret,
+				callbackURL: authConfig.facebookAuth.callbackURL
+			},
 
-        new FacebookStrategy({
-            clientID        : authConfig.facebookAuth.clientID,
-            clientSecret    : authConfig.facebookAuth.clientSecret,
-            callbackURL     : authConfig.facebookAuth.callbackURL
-        },
+			function (token, refreshToken, profile, done) {
 
-        function(token, refreshToken, profile, done) {
-            
-            process.nextTick(function() {
+				process.nextTick(function () {
 
-                User.findByEmailOrQuery( profile.emails[0].value, { 'facebook.id' : profile.id }, function(err, user) {
+					User.findByEmailOrQuery(profile.emails[0].value, {'facebook.id': profile.id}, function (err, user) {
 
-                    if (err) return done(err);
+						if (err) return done(err);
 
-                    if (!user) {
-                        var user = new User();
-                    }
+						if (!user) {
+							var user = new User();
+						}
 
-                    user.facebook.id    = profile.id; 
-                    user.facebook.token = token; 
-                    user.facebook.name  = profile.name.givenName + ' ' + profile.name.familyName; 
-                    user.email          = profile.emails[0].value; 
+						user.facebook.id = profile.id;
+						user.facebook.token = token;
+						user.facebook.name = profile.name.givenName + ' ' + profile.name.familyName;
+						user.email = profile.emails[0].value;
 
-                    user.save(function(err) {
-                        if (err) throw err;
-                        return done(null, user);
-                    });
+						user.save(function (err) {
+							if (err) throw err;
+							return done(null, user);
+						});
 
-                });
-            });
+					});
+				});
 
-        })
-    );
+			})
+	);
 
-    // TWITTER
-    passport.use(
-        new TwitterStrategy({
-            consumerKey     : authConfig.twitterAuth.consumerKey,
-            consumerSecret  : authConfig.twitterAuth.consumerSecret,
-            callbackURL     : authConfig.twitterAuth.callbackURL
-        },
-        function(token, tokenSecret, profile, done) {
+	// TWITTER
+	passport.use(
+		new TwitterStrategy({
+				consumerKey: authConfig.twitterAuth.consumerKey,
+				consumerSecret: authConfig.twitterAuth.consumerSecret,
+				callbackURL: authConfig.twitterAuth.callbackURL
+			},
+			function (token, tokenSecret, profile, done) {
 
-            process.nextTick(function() {
+				process.nextTick(function () {
 
-                User.findOne({ 'twitter.id' : profile.id }, function(err, user) {
+					User.findOne({'twitter.id': profile.id}, function (err, user) {
 
-                    if (err) return done(err);
+						if (err) return done(err);
 
-                    if (user) {
-                        return done(null, user); 
-                    } else {
-                        
-                        var newUser = new User();
-                        newUser.twitter.id = profile.id;
-                        newUser.twitter.token = token;
-                        newUser.twitter.username = profile.username;
-                        newUser.twitter.displayName = profile.displayName;
+						if (user) {
+							return done(null, user);
+						} else {
 
-                        newUser.save(function(err) {
-                            if (err) throw err;
-                            return done(null, newUser);
-                        });
-                    }
-                });
+							var newUser = new User();
+							newUser.twitter.id = profile.id;
+							newUser.twitter.token = token;
+							newUser.twitter.username = profile.username;
+							newUser.twitter.displayName = profile.displayName;
 
-            });
-        })
-    );
+							newUser.save(function (err) {
+								if (err) throw err;
+								return done(null, newUser);
+							});
+						}
+					});
 
-    // GOOGLE
-    passport.use(
-        new GoogleStrategy({
-            clientID        : authConfig.googleAuth.clientID,
-            clientSecret    : authConfig.googleAuth.clientSecret,
-            callbackURL     : authConfig.googleAuth.callbackURL,
-        },
-        function(token, refreshToken, profile, done) {
+				});
+			})
+	);
 
-            process.nextTick(function() {
+	// GOOGLE
+	passport.use(
+		new GoogleStrategy({
+				clientID: authConfig.googleAuth.clientID,
+				clientSecret: authConfig.googleAuth.clientSecret,
+				callbackURL: authConfig.googleAuth.callbackURL,
+			},
+			function (token, refreshToken, profile, done) {
 
-                User.findByEmailOrQuery( profile.emails[0].value, { 'google.id' : profile.id }, function(err, user) {
-                    
-                    if (err) return done(err);
+				process.nextTick(function () {
 
-                    if (!user) {
-                        var user = new User();
-                    } 
+					User.findByEmailOrQuery(profile.emails[0].value, {'google.id': profile.id}, function (err, user) {
 
-                    user.google.id    = profile.id;
-                    user.google.token = token;
-                    user.google.name  = profile.displayName;
-                    user.email        = profile.emails[0].value; 
+						if (err) return done(err);
 
-                    user.save(function(err) {
-                        if (err) throw err;
-                        return done(null, user);
-                    });
+						if (!user) {
+							var user = new User();
+						}
 
-                });
-            });
+						user.google.id = profile.id;
+						user.google.token = token;
+						user.google.name = profile.displayName;
+						user.email = profile.emails[0].value;
 
-        })
-    );
+						user.save(function (err) {
+							if (err) throw err;
+							return done(null, user);
+						});
+
+					});
+				});
+
+			})
+	);
 
 };
